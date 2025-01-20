@@ -51,6 +51,43 @@ app.get('/map', (req, res) => {
   res.send(htmlContent);
 });
 
+// Endpoint to fetch nearby places
+app.get('/api/nearbyplaces', async (req, res) => {
+  const lat = req.query.lat || 37.78825; // Default to a location if not provided
+  const lon = req.query.lon || -122.4324; // Default to a location if not provided
+  
+
+  // Check if lat and lon are provided
+  if (!lat || !lon) 
+  {
+    return res.status(400).json({ error: 'Latitude and longitude are required' });
+  }
+
+  try 
+  {
+    const apiKey = process.env.FSQ_API_KEY; // Get the API Key from environment variables
+
+    // Foursquare API URL to fetch nearby places
+    const url = `https://api.foursquare.com/v2/venues/search?ll=${lat},${lon}&radius=1000&client_id=${apiKey}&client_secret=${apiKey}&v=20230101`;
+
+    // Make the request to Foursquare API
+    const response = await axios.get(url);
+
+    // Check if response contains venues
+    if (response.data.response && response.data.response.venues) {
+      const venues = response.data.response.venues;
+      return res.json(venues);  // Send the nearby places as response
+    } else {
+      return res.status(404).json({ error: 'No places found' });
+    }
+  } catch (error) {
+    console.error('Error fetching nearby places:', error);
+    return res.status(500).json({ error: 'Error fetching nearby places' });
+  }
+});
+
+
+
 // Start server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
