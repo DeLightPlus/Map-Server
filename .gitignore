@@ -1,1 +1,15 @@
-/node-modules
+# Node.js modules
+node_modules/
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env
+
+# OS generated files
+.DS_Store
+
+# npm-debug
+npm-debug.log*

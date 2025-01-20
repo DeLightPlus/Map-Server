@@ -50,29 +50,37 @@ app.get('/api/nearbyplaces', async (req, res) => {
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);
 
+  console.log('Latitude:', lat, '| Longitude:', lon);
+
   // Validate lat and lon
   if (isNaN(lat) || isNaN(lon)) {
     return res.status(400).json({ error: 'Invalid latitude or longitude' });
   }
 
-  // Check if API key is set in environment
-  if (!process.env.FSQ_API_KEY) {
-    return res.status(500).json({ error: 'Foursquare API key is missing' });
-  }
+  // API call to Foursquare to fetch nearby places
+  const options = {
+    method: 'GET',
+    url: 'https://api.foursquare.com/v3/places/search',
+    headers: {
+      accept: 'application/json',
+      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM='  // Your API key with Bearer prefix
+    },
+    params: {
+      ll: `${lat},${lon}`,  // Coordinates of the location
+      radius: 1000  // Radius in meters (1 km radius)
+    }
+  };
 
   try {
-    const apiKey = process.env.FSQ_API_KEY;
-
-    // Foursquare API URL to fetch nearby places
-    const url = `https://api.foursquare.com/v2/venues/search?ll=${lat},${lon}&radius=1000&client_id=${apiKey}&client_secret=${apiKey}&v=20230101`;
-
-    const response = await axios.get(url);
-
-    // Check if response contains venues
-    if (response.data.response && response.data.response.venues) {
-      const venues = response.data.response.venues;
-      return res.json(venues);  // Send the nearby places as response
-    } else {
+    const response = await axios.request(options);
+    
+    // If the API responds successfully
+    if (response.data) 
+    {
+      return res.json(response.data);  // Send the places data to the client
+    } 
+    else 
+    {
       return res.status(404).json({ error: 'No places found' });
     }
   } catch (error) {
@@ -80,6 +88,124 @@ app.get('/api/nearbyplaces', async (req, res) => {
     return res.status(500).json({ error: 'Error fetching nearby places' });
   }
 });
+
+// Endpoint to fetch nearby restaurants only
+app.get('/api/restaurants', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+
+  console.log('Latitude:', lat, '| Longitude:', lon);
+
+  // Validate lat and lon
+  if (isNaN(lat) || isNaN(lon)) {
+    return res.status(400).json({ error: 'Invalid latitude or longitude' });
+  }
+
+  // API call to Foursquare to fetch nearby places, filtered for restaurants
+  const options = {
+    method: 'GET',
+    url: 'https://api.foursquare.com/v3/places/search',
+    headers: {
+      accept: 'application/json',
+      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM='  // Your API key without "Bearer"
+    },
+    params: {
+      ll: `${lat},${lon}`,  // Coordinates of the location
+      radius: 1000,  // Radius in meters (1 km radius)
+      categories: '13065'  // Foursquare category for restaurants
+    }
+  };
+
+  try {
+    const response = await axios.request(options);
+    
+    // If the API responds successfully
+    if (response.data) {
+      return res.json(response.data);  // Send the restaurant data to the client
+    } else {
+      return res.status(404).json({ error: 'No restaurants found' });
+    }
+  } catch (error) {
+    console.error('Error fetching restaurants:', error);
+    return res.status(500).json({ error: 'Error fetching restaurants' });
+  }
+});
+
+// Endpoint to fetch details of a specific place
+app.get('/api/placedetails', async (req, res) => {
+  const fsqId = req.query.fsq_id;  // Foursquare ID of the place
+
+  if (!fsqId) {
+    return res.status(400).json({ error: 'Foursquare place ID (fsq_id) is required' });
+  }
+
+  // API call to Foursquare to fetch place details
+  const options = {
+    method: 'GET',
+    url: `https://api.foursquare.com/v3/places/${fsqId}`,
+    headers: {
+      accept: 'application/json',
+      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM=' 
+    }
+  };
+
+  try {
+    const response = await axios.request(options);
+
+    // If the API responds successfully
+    if (response.data) {
+      return res.json(response.data);  // Send the place details data to the client
+    } else {
+      return res.status(404).json({ error: 'Place details not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching place details:', error);
+    return res.status(500).json({ error: 'Error fetching place details' });
+  }
+});
+
+// Endpoint to fetch restaurant photos
+app.get('/api/restaurant-photos', async (req, res) => {
+  const fsq_id = req.query.fsq_id; // Get fsq_id from query parameters
+
+  // Check if fsq_id is provided
+  if (!fsq_id) {
+    return res.status(400).json({ error: 'fsq_id is required' });
+  }
+
+  // Foursquare API endpoint to fetch place details (with photos)
+  const options = {
+    method: 'GET',
+    url: `https://api.foursquare.com/v3/places/${fsq_id}/photos`,
+    headers: {
+      accept: 'application/json',
+      "Content-Type": "application/json",
+      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM=' // Foursquare API Key
+    }
+  };
+
+  try {
+    const response = await axios.request(options);
+    const data = response.data; // Photos are under the 'data' field in the response
+    console.log(response.data);  // Log response for debugging
+
+    // Check if there are any photos for the place
+    if (data && data.length > 0) {
+      // Map through the photos and construct the URLs for the images
+      const photoUrls = data.map(photo => `${photo.prefix}500x500${photo.suffix}`);
+
+      // Return the photo URLs in the response
+      return res.json({ photos: photoUrls });
+    } else {
+      return res.status(404).json({ error: 'No photos found for this restaurant' });
+    }
+  } catch (error) {
+    console.error('Error fetching restaurant photos:', error);
+    return res.status(500).json({ error: 'Error fetching restaurant photos' });
+  }
+});
+
+
 
 // Start server
 app.listen(port, () => {
