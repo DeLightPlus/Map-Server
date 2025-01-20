@@ -1,22 +1,20 @@
 const express = require('express');
-const axios = require('axios')
-const cors = require('cors')
+const axios = require('axios');  // Ensure axios is imported
+const cors = require('cors');
+require('dotenv').config();
+
 const app = express();
 const port = 3000;
 
 // Serve static files (if any)
 app.use(express.static('public'));
-app.use(cors())
-
-require('dotenv').config();
+app.use(cors());
 
 // Route to serve the map HTML dynamically
 app.get('/map', (req, res) => {
-  // Extract currentLat and currentLon from query parameters
-  const currentLat = req.query.lat || 37.78825; // Default to a location if not provided
-  const currentLon = req.query.lon || -122.4324; // Default to a location if not provided
+  const currentLat = parseFloat(req.query.lat) || 37.78825; // Default to a location if not provided
+  const currentLon = parseFloat(req.query.lon) || -122.4324; // Default to a location if not provided
 
-  // HTML content for the map
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -34,13 +32,8 @@ app.get('/map', (req, res) => {
       <body>
         <div id="map"></div>
         <script>
-          // Initialize map with dynamic coordinates from query params
           var map = L.map('map').setView([${currentLat}, ${currentLon}], 13);
-          
-          // Add OpenStreetMap tile layer
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-          
-          // Add a marker at the current location
           L.marker([${currentLat}, ${currentLon}]).addTo(map)
             .bindPopup('You are here!')
             .openPopup();
@@ -48,31 +41,31 @@ app.get('/map', (req, res) => {
       </body>
     </html>
   `;
-  
-  // Send the HTML content as a response
+
   res.send(htmlContent);
 });
 
 // Endpoint to fetch nearby places
 app.get('/api/nearbyplaces', async (req, res) => {
-  const lat = req.query.lat || 37.78825; // Default to a location if not provided
-  const lon = req.query.lon || -122.4324; // Default to a location if not provided
-  
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
 
-  // Check if lat and lon are provided
-  if (!lat || !lon) 
-  {
-    return res.status(400).json({ error: 'Latitude and longitude are required' });
+  // Validate lat and lon
+  if (isNaN(lat) || isNaN(lon)) {
+    return res.status(400).json({ error: 'Invalid latitude or longitude' });
   }
 
-  try 
-  {
-    const apiKey = process.env.FSQ_API_KEY; // Get the API Key from environment variables
+  // Check if API key is set in environment
+  if (!process.env.FSQ_API_KEY) {
+    return res.status(500).json({ error: 'Foursquare API key is missing' });
+  }
+
+  try {
+    const apiKey = process.env.FSQ_API_KEY;
 
     // Foursquare API URL to fetch nearby places
     const url = `https://api.foursquare.com/v2/venues/search?ll=${lat},${lon}&radius=1000&client_id=${apiKey}&client_secret=${apiKey}&v=20230101`;
 
-    // Make the request to Foursquare API
     const response = await axios.get(url);
 
     // Check if response contains venues
@@ -87,8 +80,6 @@ app.get('/api/nearbyplaces', async (req, res) => {
     return res.status(500).json({ error: 'Error fetching nearby places' });
   }
 });
-
-
 
 // Start server
 app.listen(port, () => {
