@@ -37,6 +37,8 @@ app.get('/map', async (req, res) => {
     const response = await axios.get(`https://map-server-1-l0ef.onrender.com/api/restaurants?lat=${lat}&lon=${lon}`);
 
     const restaurantsData = response.data.results || [];  // Assuming the response contains a 'results' array
+    console.log("restaurants: ", restaurantsData);
+    
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -151,7 +153,7 @@ app.get('/api/restaurants', async (req, res) => {
     },
     params: {
       ll: `${lat},${lon}`,  // Coordinates of the location
-      radius: 1000,  // Radius in meters (1 km radius)
+      radius: 32 * 1000,  // Radius in meters (1 km radius)
       categories: '13065'  // Foursquare category for restaurants
     }
   };
