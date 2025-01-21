@@ -11,18 +11,24 @@ app.use(express.static('public'));
 app.use(cors());
 
 // Route to serve the map HTML dynamically // Bloemfontein/@-29.1199822,26.1408227
+
 app.get('/map', (req, res) => {
+  // Get the current location from the query params (fall back to a default if not provided)
   const currentLat = parseFloat(req.query.currentLat) || -29.1199822;  // Default to a location if not provided
   const currentLon = parseFloat(req.query.currentLon) || 26.1408227;  // Default to a location if not provided
+  
+  // Get the searched location from the query params (may be empty or undefined)
   const searchedLat = parseFloat(req.query.lat);      // Get searchedLat from query param
   const searchedLon = parseFloat(req.query.lon);      // Get searchedLon from query param
+  
+  // Log current coordinates for debugging
+  console.log(`Current location: ${currentLat}, ${currentLon}`);
 
-  // Use searched location if available, otherwise fallback to current location
+  // Use current location as default if searched coordinates are not available
   const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
   const lon = !isNaN(searchedLon) ? searchedLon : currentLon;
 
-  const maxCoverageRadius = 900 * 1000; // Radius in meters (1km)
-  const coverageRadius = 32 * 1000; // Radius in meters (1km)
+  const coverageRadius = 32 * 1000; // Radius in meters (32km, for example)
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -41,8 +47,14 @@ app.get('/map', (req, res) => {
       <body>
         <div id="map"></div>
         <script>
-          var map = L.map('map').setView([${lat}, ${lon}], 13);  // Use the searched location or current location
+          // Initialize the map at the current location or searched location (if provided)
+          var map = L.map('map').setView([${currentLat}, ${currentLon}], 13);
+
+          // Add OpenStreetMap tile layer
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+          // Log map creation to console for debugging
+          console.log('Map initialized at:', [${currentLat}, ${currentLon}]);
 
           // Custom Icon for Current Location (Red and Smaller)
           var currentLocationIcon = L.icon({
@@ -67,7 +79,7 @@ app.get('/map', (req, res) => {
             .bindPopup('Your Current Location')
             .openPopup();
 
-          // Add a circle around the current location marker (1 km radius)
+          // Add a circle around the current location marker (32 km radius)
           L.circle([${currentLat}, ${currentLon}], {
             color: 'red',
             fillColor: '#f03',
@@ -75,18 +87,20 @@ app.get('/map', (req, res) => {
             radius: ${coverageRadius}, // Radius in meters
           }).addTo(map);
 
-          // Add marker for searched location (using larger, blue icon)
-          L.marker([${lat}, ${lon}], { icon: searchedLocationIcon }).addTo(map)
-            .bindPopup('Searched Location')
-            .openPopup();
+          // If searched location coordinates are available, add marker for searched location
+          ${searchedLat && searchedLon ? `
+            L.marker([${searchedLat}, ${searchedLon}], { icon: searchedLocationIcon }).addTo(map)
+              .bindPopup('Searched Location')
+              .openPopup();
 
-          // Add a circle around the searched location marker (1 km radius)
-          L.circle([${lat}, ${lon}], {
-            color: 'blue',
-            fillColor: '#03f',
-            fillOpacity: 0.2,
-            radius: ${coverageRadius}, // Radius in meters
-          }).addTo(map);
+            // Add a circle around the searched location marker (32 km radius)
+            L.circle([${searchedLat}, ${searchedLon}], {
+              color: 'blue',
+              fillColor: '#03f',
+              fillOpacity: 0.2,
+              radius: ${coverageRadius}, // Radius in meters
+            }).addTo(map);
+          ` : ""}
         </script>
       </body>
     </html>
