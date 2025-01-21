@@ -10,6 +10,40 @@ const port = 3000;
 app.use(express.static('public'));
 app.use(cors());
 
+
+// Reusable function to fetch nearby restaurants
+async function getNearbyRestaurants(lat, lon) {
+  const options = {
+    method: 'GET',
+    url: 'https://api.foursquare.com/v3/places/search',
+    headers: {
+      accept: 'application/json',
+      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM='  // Your API key without "Bearer"
+    },
+    params: {
+      ll: `${lat},${lon}`,  // Coordinates of the location
+      radius: 32 * 1000,     // Radius in meters (32 km)
+      categories: '13065'    // Foursquare category for restaurants
+    }
+  };
+
+  try {
+    const response = await axios.request(options);
+    
+    // If the API responds successfully
+    if (response.data) 
+    {
+      console.log(response.data);      
+      return response.data.results || [];  // Return the list of restaurants
+    } else {
+      return [];  // Return an empty array if no restaurants are found
+    }
+  } catch (error) {
+    console.error('Error fetching restaurants:', error);
+    throw new Error('Error fetching restaurants');
+  }
+}
+
 // Route to serve the map HTML dynamically // Bloemfontein/@-29.1199822,26.1408227
 app.get('/map', async (req, res) => {
   // Get the current location from the query params (fall back to a default if not provided)
@@ -26,13 +60,9 @@ app.get('/map', async (req, res) => {
 
   const coverageRadius = 32 * 1000; // Radius in meters (32km)
 
-  try {
-    // Fetch nearby restaurants from the server's API
-    const response = await axios.get('https://map-server-1-l0ef.onrender.com/api/restaurants', {
-      params: { lat, lon },
-    });
-
-    const restaurantsData = response.data.results || [];  
+  try 
+  {
+    const restaurantsData = await getNearbyRestaurants(lat, lon);  
     console.log("Restaurants: ", restaurantsData);    
 
     const htmlContent = `
@@ -139,35 +169,21 @@ app.get('/api/restaurants', async (req, res) => {
   console.log('Latitude:', lat, '| Longitude:', lon);
 
   // Validate lat and lon
-  if (isNaN(lat) || isNaN(lon)) {
+  if (isNaN(lat) || isNaN(lon)) 
+  {
     return res.status(400).json({ error: 'Invalid latitude or longitude' });
-  }
+  }  
 
-  // API call to Foursquare to fetch nearby places, filtered for restaurants
-  const options = {
-    method: 'GET',
-    url: 'https://api.foursquare.com/v3/places/search',
-    headers: {
-      accept: 'application/json',
-      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM='  // Your API key without "Bearer"
-    },
-    params: {
-      ll: `${lat},${lon}`,  // Coordinates of the location
-      radius: 32 * 1000,  // Radius in meters (1 km radius)
-      categories: '13065'  // Foursquare category for restaurants
-    }
-  };
-
-  try {
-    const response = await axios.request(options);
+  try 
+  {
+    // Fetch nearby restaurants using the reusable function
+    const restaurantsData = await getNearbyRestaurants(lat, lon);
+    console.log("restaurantsData", restaurantsData);
     
-    // If the API responds successfully
-    if (response.data) {
-      return res.json(response.data);  // Send the restaurant data to the client
-    } else {
-      return res.status(404).json({ error: 'No restaurants found' });
-    }
-  } catch (error) {
+    return res.json({ results: restaurantsData });
+  } 
+  catch (error) 
+  {
     console.error('Error fetching restaurants:', error);
     return res.status(500).json({ error: 'Error fetching restaurants' });
   }
