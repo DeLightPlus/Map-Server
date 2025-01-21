@@ -12,10 +12,10 @@ app.use(cors());
 
 // Route to serve the map HTML dynamically // Bloemfontein/@-29.1199822,26.1408227
 app.get('/map', (req, res) => {
-  const currentLat = parseFloat(req.query.lat) || -29.1199822;  // Default to a location if not provided
-  const currentLon = parseFloat(req.query.lon) || 26.1408227;  // Default to a location if not provided
-  const searchedLat = parseFloat(req.query.searchedLat);      // Get searchedLat from query param
-  const searchedLon = parseFloat(req.query.searchedLon);      // Get searchedLon from query param
+  const currentLat = parseFloat(req.query.currentLat) || -29.1199822;  // Default to a location if not provided
+  const currentLon = parseFloat(req.query.currentLon) || 26.1408227;  // Default to a location if not provided
+  const searchedLat = parseFloat(req.query.lat);      // Get searchedLat from query param
+  const searchedLon = parseFloat(req.query.lon);      // Get searchedLon from query param
 
   // Use searched location if available, otherwise fallback to current location
   const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
