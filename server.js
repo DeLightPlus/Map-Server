@@ -60,11 +60,30 @@ app.get('/map', async (req, res) => {
 
   const coverageRadius = 32 * 1000; // Radius in meters (32km)
 
-  try 
-  {
-    const restaurantsData = await getNearbyRestaurants(lat, lon);  
-    console.log("Restaurants: ", restaurantsData);    
+  try {
+    // Fetch nearby restaurants from Foursquare API
+    const options = {
+      method: 'GET',
+      url: 'https://api.foursquare.com/v3/places/search',
+      headers: {
+        accept: 'application/json',
+        Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM='  // Your API key without "Bearer"
+      },
+      params: {
+        ll: `${lat},${lon}`,  // Coordinates of the location
+        radius: 32 * 1000,     // Radius in meters (32 km)
+        categories: '13065'    // Foursquare category for restaurants
+      }
+    };
 
+    const response = await axios.request(options);
+
+    // If the API responds successfully
+    const restaurantsData = response.data.results || [];
+
+    console.log("Restaurants: ", restaurantsData.geocodes);    
+
+    // Generate HTML content to render the map with restaurant markers
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="en">
@@ -133,11 +152,12 @@ app.get('/map', async (req, res) => {
             const restaurants = ${JSON.stringify(restaurantsData)};
             restaurants.forEach(function(restaurant) {
               // Access the coordinates from geocodes.main
-              var lat = restaurant.geocodes.main.lat;
-              var lon = restaurant.geocodes.main.lng;
+              const lat = restaurant.geocodes.main.latitude;
+              const lon = restaurant.geocodes.main.longitude;
 
+              // Use a default icon or the restaurant's own icon
               var restaurantIcon = L.icon({
-                iconUrl: restaurant.iconUrl || 'https://example.com/restaurant-icon.png',  // Default or custom icon for restaurant
+                iconUrl: 'https://example.com/restaurant-icon.png',  // Default icon, you can customize this
                 iconSize: [40, 40],
                 iconAnchor: [20, 40],
                 popupAnchor: [1, -34],
@@ -153,6 +173,7 @@ app.get('/map', async (req, res) => {
       </html>
     `;
 
+    // Send the generated HTML content as the response
     res.send(htmlContent);
 
   } catch (error) {
