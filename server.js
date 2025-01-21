@@ -32,7 +32,8 @@ app.get('/map', async (req, res) => {
       params: { lat, lon },
     });
 
-    const restaurantsData = response.data.results || [];  // Assuming the response contains a 'results' array
+    const restaurantsData = response.data.results || [];  
+    console.log("Restaurants: ", restaurantsData);    
 
     const htmlContent = `
       <!DOCTYPE html>
