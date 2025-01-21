@@ -14,6 +14,8 @@ app.use(cors());
 app.get('/map', (req, res) => {
   const currentLat = parseFloat(req.query.lat) || 37.78825; // Default to a location if not provided
   const currentLon = parseFloat(req.query.lon) || -122.4324; // Default to a location if not provided
+  const searchedLat = parseFloat(req.query.searchedLat);      // Get searchedLat from query param
+  const searchedLon = parseFloat(req.query.searchedLon);      // Get searchedLon from query param
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -34,8 +36,14 @@ app.get('/map', (req, res) => {
         <script>
           var map = L.map('map').setView([${currentLat}, ${currentLon}], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
           L.marker([${currentLat}, ${currentLon}]).addTo(map)
             .bindPopup('You are here!')
+            .openPopup();
+
+          // Add marker for searched location
+          L.marker([${lat}, ${lon}]).addTo(map)
+            .bindPopup('Searched Location')
             .openPopup();
         </script>
       </body>
