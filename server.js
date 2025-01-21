@@ -21,11 +21,10 @@ app.get('/map', (req, res) => {
   const searchedLat = parseFloat(req.query.lat);      // Get searchedLat from query param
   const searchedLon = parseFloat(req.query.lon);      // Get searchedLon from query param
 
-  const restaurantsData = JSON.parse(decodeURIComponent(req.query.restaurants || '[]'));
-  
+  const restaurantsData = JSON.parse(decodeURIComponent(req.query.restaurants || '[]'));  
   // Log current coordinates for debugging
   console.log(`Current location: ${currentLat}, ${currentLon}`);
-  console.log(`Restaurant: ${currentLat}, ${currentLon}`);
+  console.log(`Restaurant: ${restaurantsData}`);
 
   const coverageRadius = 32 * 1000; // Radius in meters (32km)
 
