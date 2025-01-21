@@ -20,15 +20,14 @@ app.get('/map', (req, res) => {
   // Get the searched location from the query params (may be empty or undefined)
   const searchedLat = parseFloat(req.query.lat);      // Get searchedLat from query param
   const searchedLon = parseFloat(req.query.lon);      // Get searchedLon from query param
+
+  const restaurantsData = JSON.parse(decodeURIComponent(req.query.restaurants || '[]'));
   
   // Log current coordinates for debugging
   console.log(`Current location: ${currentLat}, ${currentLon}`);
+  console.log(`Restaurant: ${currentLat}, ${currentLon}`);
 
-  // Use current location as default if searched coordinates are not available
-  const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
-  const lon = !isNaN(searchedLon) ? searchedLon : currentLon;
-
-  const coverageRadius = 32 * 1000; // Radius in meters (32km, for example)
+  const coverageRadius = 32 * 1000; // Radius in meters (32km)
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -47,60 +46,67 @@ app.get('/map', (req, res) => {
       <body>
         <div id="map"></div>
         <script>
-          // Initialize the map at the current location or searched location (if provided)
           var map = L.map('map').setView([${currentLat}, ${currentLon}], 13);
-
-          // Add OpenStreetMap tile layer
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-          // Log map creation to console for debugging
-          console.log('Map initialized at:', [${currentLat}, ${currentLon}]);
 
           // Custom Icon for Current Location (Red and Smaller)
           var currentLocationIcon = L.icon({
             iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-red.png',
-            iconSize: [25, 41],  // Smaller size
-            iconAnchor: [12, 41],  // Anchor point of the icon
-            popupAnchor: [1, -34], // Popup anchor point
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
             shadowSize: [41, 41],
           });
 
           // Custom Icon for Searched Location (Larger and Blue)
           var searchedLocationIcon = L.icon({
-            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',  // Blue marker
-            iconSize: [35, 50],  // Larger size
-            iconAnchor: [17, 50],  // Anchor point of the icon
-            popupAnchor: [1, -40], // Popup anchor point
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+            iconSize: [35, 50],
+            iconAnchor: [17, 50],
+            popupAnchor: [1, -40],
             shadowSize: [41, 41],
           });
 
-          // Add marker for current location (using red, smaller icon)
+          // Add marker for current location
           L.marker([${currentLat}, ${currentLon}], { icon: currentLocationIcon }).addTo(map)
             .bindPopup('Your Current Location')
             .openPopup();
 
-          // Add a circle around the current location marker (32 km radius)
+          // Add a circle around the current location marker
           L.circle([${currentLat}, ${currentLon}], {
             color: 'red',
             fillColor: '#f03',
             fillOpacity: 0.2,
-            radius: ${coverageRadius}, // Radius in meters
+            radius: ${coverageRadius},
           }).addTo(map);
 
-          // If searched location coordinates are available, add marker for searched location
-          ${searchedLat && searchedLon ? `
-            L.marker([${searchedLat}, ${searchedLon}], { icon: searchedLocationIcon }).addTo(map)
-              .bindPopup('Searched Location')
-              .openPopup();
+          // Add marker for searched location
+          L.marker([${searchedLat}, ${searchedLon}], { icon: searchedLocationIcon }).addTo(map)
+            .bindPopup('Searched Location')
+            .openPopup();
 
-            // Add a circle around the searched location marker (32 km radius)
-            L.circle([${searchedLat}, ${searchedLon}], {
-              color: 'blue',
-              fillColor: '#03f',
-              fillOpacity: 0.2,
-              radius: ${coverageRadius}, // Radius in meters
-            }).addTo(map);
-          ` : ""}
+          // Add a circle around the searched location marker
+          L.circle([${searchedLat}, ${searchedLon}], {
+            color: 'blue',
+            fillColor: '#03f',
+            fillOpacity: 0.2,
+            radius: ${coverageRadius},
+          }).addTo(map);
+
+          // Add restaurant markers
+          const restaurants = ${JSON.stringify(restaurantsData)};
+          restaurants.forEach(function(restaurant) {
+            var restaurantIcon = L.icon({
+              iconUrl: restaurant.iconUrl || 'https://example.com/restaurant-icon.png',  // Custom icon
+              iconSize: [40, 40],
+              iconAnchor: [20, 40],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41],
+            });
+            L.marker([restaurant.lat, restaurant.lon], { icon: restaurantIcon })
+              .addTo(map)
+              .bindPopup(restaurant.name);
+          });
         </script>
       </body>
     </html>
