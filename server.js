@@ -12,10 +12,14 @@ app.use(cors());
 
 // Route to serve the map HTML dynamically
 app.get('/map', (req, res) => {
-  const currentLat = parseFloat(req.query.lat) || 37.78825; // Default to a location if not provided
-  const currentLon = parseFloat(req.query.lon) || -122.4324; // Default to a location if not provided
+  const currentLat = parseFloat(req.query.lat) || 37.78825;  // Default to a location if not provided
+  const currentLon = parseFloat(req.query.lon) || -122.4324;  // Default to a location if not provided
   const searchedLat = parseFloat(req.query.searchedLat);      // Get searchedLat from query param
   const searchedLon = parseFloat(req.query.searchedLon);      // Get searchedLon from query param
+
+  // Use searched location if available, otherwise fallback to current location
+  const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
+  const lon = !isNaN(searchedLon) ? searchedLon : currentLon;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -34,13 +38,14 @@ app.get('/map', (req, res) => {
       <body>
         <div id="map"></div>
         <script>
-          var map = L.map('map').setView([${currentLat}, ${currentLon}], 13);
+          var map = L.map('map').setView([${lat}, ${lon}], 13);  // Use the searched location or current location
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
+          
+          // Add marker for current location
           L.marker([${currentLat}, ${currentLon}]).addTo(map)
-            .bindPopup('You are here!')
+            .bindPopup('Your Current Location')
             .openPopup();
-
+          
           // Add marker for searched location
           L.marker([${lat}, ${lon}]).addTo(map)
             .bindPopup('Searched Location')
