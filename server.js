@@ -11,34 +11,28 @@ app.use(express.static('public'));
 app.use(cors());
 
 // Route to serve the map HTML dynamically // Bloemfontein/@-29.1199822,26.1408227
-
 app.get('/map', async (req, res) => {
   // Get the current location from the query params (fall back to a default if not provided)
   const currentLat = parseFloat(req.query.currentLat) || -29.1199822;  // Default to a location if not provided
   const currentLon = parseFloat(req.query.currentLon) || 26.1408227;  // Default to a location if not provided
   
   // Get the searched location from the query params (may be empty or undefined)
-  const searchedLat = parseFloat(req.query.lat);      // Get searchedLat from query param
-  const searchedLon = parseFloat(req.query.lon);      // Get searchedLon from query param
+  const searchedLat = parseFloat(req.query.lat);  // Get searchedLat from query param
+  const searchedLon = parseFloat(req.query.lon);  // Get searchedLon from query param
 
-   // Use searched location if available, otherwise fallback to current location
-   const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
-   const lon = !isNaN(searchedLon) ? searchedLon : currentLon;
-
-  const restaurantsData = JSON.parse(decodeURIComponent(req.query.restaurants || '[]'));  
-  // Log current coordinates for debugging
-  console.log(`Current location: ${currentLat}, ${currentLon}`);
-  console.log(`Restaurants: ${restaurantsData}`);
+  // Use searched location if available, otherwise fallback to current location
+  const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
+  const lon = !isNaN(searchedLon) ? searchedLon : currentLon;
 
   const coverageRadius = 32 * 1000; // Radius in meters (32km)
 
   try {
     // Fetch nearby restaurants from the server's API
-    const response = await axios.get(`https://map-server-1-l0ef.onrender.com/api/restaurants?lat=${lat}&lon=${lon}`);
+    const response = await axios.get('https://map-server-1-l0ef.onrender.com/api/restaurants', {
+      params: { lat, lon },
+    });
 
     const restaurantsData = response.data.results || [];  // Assuming the response contains a 'results' array
-    console.log("restaurants: ", restaurantsData);
-    
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -107,6 +101,10 @@ app.get('/map', async (req, res) => {
             // Add restaurant markers
             const restaurants = ${JSON.stringify(restaurantsData)};
             restaurants.forEach(function(restaurant) {
+              // Access the coordinates from geocodes.main
+              var lat = restaurant.geocodes.main.lat;
+              var lon = restaurant.geocodes.main.lng;
+
               var restaurantIcon = L.icon({
                 iconUrl: restaurant.iconUrl || 'https://example.com/restaurant-icon.png',  // Default or custom icon for restaurant
                 iconSize: [40, 40],
@@ -114,7 +112,8 @@ app.get('/map', async (req, res) => {
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41],
               });
-              L.marker([restaurant.location.lat, restaurant.location.lng], { icon: restaurantIcon })
+
+              L.marker([lat, lon], { icon: restaurantIcon })
                 .addTo(map)
                 .bindPopup(restaurant.name);
             });
@@ -129,7 +128,7 @@ app.get('/map', async (req, res) => {
     console.error("Error fetching restaurants:", error);
     res.status(500).send("Error fetching restaurants data");
   }
-});;
+});
 
 // Endpoint to fetch nearby restaurants only
 app.get('/api/restaurants', async (req, res) => {
