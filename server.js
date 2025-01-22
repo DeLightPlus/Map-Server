@@ -81,7 +81,14 @@ app.get('/map', async (req, res) => {
     // If the API responds successfully
     const restaurantsData = response.data.results || [];
 
-    console.log("Restaurants: ", restaurantsData.geocodes);    
+    restaurantsData.forEach(restaurant => {
+        // Accessing categories
+        console.log('Categories:', JSON.stringify(restaurant.categories, null, 2));
+        
+        // Accessing geocodes (main)
+        console.log('Geocodes:', JSON.stringify(restaurant.geocodes, null, 2));
+      }
+    )    
 
     // Generate HTML content to render the map with restaurant markers
     const htmlContent = `
@@ -106,8 +113,8 @@ app.get('/map', async (req, res) => {
 
             // Custom Icon for Current Location (Red and Smaller)
             var currentLocationIcon = L.icon({
-              iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-red.png',
-              iconSize: [25, 41],
+              iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+              iconSize: [10, 19],
               iconAnchor: [12, 41],
               popupAnchor: [1, -34],
               shadowSize: [41, 41],
@@ -116,7 +123,7 @@ app.get('/map', async (req, res) => {
             // Custom Icon for Searched Location (Larger and Blue)
             var searchedLocationIcon = L.icon({
               iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-              iconSize: [35, 50],
+              iconSize: [25, 41],
               iconAnchor: [17, 50],
               popupAnchor: [1, -40],
               shadowSize: [41, 41],
@@ -155,9 +162,14 @@ app.get('/map', async (req, res) => {
               const lat = restaurant.geocodes.main.latitude;
               const lon = restaurant.geocodes.main.longitude;
 
+              const restaurantCategory = restaurant.categories[0];
+              const restaurantIconUrl = restaurantCategory && restaurantCategory.icon ? 
+                restaurantCategory.icon.prefix + '32.png' : 
+                'https://th.bing.com/th/id/R.5f8c9ff19804e88396c61171615fb799?rik=Evy%2bK%2fckH%2fMLWQ&pid=ImgRaw&r=0';
+
               // Use a default icon or the restaurant's own icon
               var restaurantIcon = L.icon({
-                iconUrl: 'https://example.com/restaurant-icon.png',  // Default icon, you can customize this
+                iconUrl: restaurantIconUrl,  // Default icon, you can customize this
                 iconSize: [40, 40],
                 iconAnchor: [20, 40],
                 popupAnchor: [1, -34],
