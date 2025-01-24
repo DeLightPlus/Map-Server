@@ -96,7 +96,6 @@ async function getRestaurantsByQuery( currentLat, currentLon, query ) {
   }
 }
 
-
 // Route to serve the map HTML dynamically // Bloemfontein/@-29.1199822,26.1408227
 app.get('/map', async (req, res) => {
   // Get the current location from the query params (fall back to a default if not provided)
@@ -251,11 +250,18 @@ app.get('/map', async (req, res) => {
 app.get('/api/restaurants', async (req, res) => {
   const { currentLat, currentLon, lat, lon, query } = req.query;
 
-  console.log('currentLat:', currentLat, '| currentLon:', currentLon, '| lat:', lat, '| lon:', lon, "| query: ", query);
+  console.log('currentLat:', currentLat, '| currentLon:', currentLon, '| lat:', lat, '| lon:', lon, '| query:', query);
 
   try {
-    // Validate latitude and longitude
-    if ((isNaN(lat) || isNaN(lon)) && !query) {
+    // Check if currentLat and currentLon are provided
+    if (isNaN(currentLat) || isNaN(currentLon)) 
+    {
+      return res.status(400).json({ error: 'Current latitude and longitude are required.' });
+    }
+
+    // Validate latitude and longitude if provided
+    if ((isNaN(lat) || isNaN(lon)) && !query) 
+    {
       return res.status(400).json({ error: 'Invalid latitude, longitude or query parameter' });
     }
 
@@ -264,24 +270,32 @@ app.get('/api/restaurants', async (req, res) => {
     // If a search query is provided, fetch restaurants based on the query
     if (query) 
     {
-      // We now use currentLat and currentLon in the function, assuming this is the "current location"
+      // Use currentLat and currentLon as reference coordinates
       restaurantsData = await getRestaurantsByQuery(parseFloat(currentLat), parseFloat(currentLon), query);
     } 
-    // Otherwise, fetch restaurants based on coordinates
+    else if(!isNaN(currentLon) && !isNaN(currentLat) && !query)
+    {
+      restaurantsData = await getNearbyRestaurants(parseFloat(currentLat), parseFloat(currentLon));
+    }    
     else if (!isNaN(lat) && !isNaN(lon)) 
     {
-      restaurantsData = await getNearbyRestaurants(parseFloat(lat), parseFloat(lon));  // Coordinates based search
+      restaurantsData = await getNearbyRestaurants(parseFloat(lat), parseFloat(lon));  // Coordinates-based search
+    }   
+    else  // If neither query nor valid lat/lon is provided, return an error
+    {
+      return res.status(400).json({ error: 'Please provide either a query or valid latitude and longitude.' });
     }
 
-    console.log("restaurantsData:", restaurantsData);    
+    console.log("restaurantsData:", restaurantsData);
     return res.json({ results: restaurantsData });
 
-  } catch (error) {
+  }
+  catch (error) 
+  {
     console.error('Error fetching restaurants:', error);
     return res.status(500).json({ error: 'Error fetching restaurants' });
   }
 });
-
 
 // Endpoint to fetch nearby places
 app.get('/api/nearbyplaces', async (req, res) => {
@@ -400,8 +414,6 @@ app.get('/api/restaurant-photos', async (req, res) => {
     return res.status(500).json({ error: 'Error fetching restaurant photos' });
   }
 });
-
-
 
 // Start server
 app.listen(port, () => {
