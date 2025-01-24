@@ -196,23 +196,30 @@ app.get('/map', async (req, res) => {
 
 // Endpoint to fetch nearby restaurants only
 app.get('/api/restaurants', async (req, res) => {
-  const lat = parseFloat(req.query.lat);
-  const lon = parseFloat(req.query.lon);
+  const { lat, lon, s_query } = req.query;
 
-  console.log('Latitude:', lat, '| Longitude:', lon);
-
-  // Validate lat and lon
-  if (isNaN(lat) || isNaN(lon)) 
-  {
-    return res.status(400).json({ error: 'Invalid latitude or longitude' });
-  }  
+  console.log('Latitude:', lat, '| Longitude:', lon, "| s_query: ", s_query);
 
   try 
   {
-    // Fetch nearby restaurants using the reusable function
-    const restaurantsData = await getNearbyRestaurants(lat, lon);
-    console.log("restaurantsData", restaurantsData);
-    
+    // Validate lat and lon
+    if ((isNaN(lat) || isNaN(lon)) && !s_query) 
+    {
+      return res.status(400).json({ error: 'Invalid latitude or longitude' });
+    }
+
+    if (s_query) 
+    {
+      // If search query is provided, fetch restaurants based on the query
+      restaurantsData = await getRestaurantsByQuery(s_query);  // Replace with your function to search restaurants by name or type
+    } 
+    else 
+    {
+      // Otherwise, fetch restaurants based on coordinates
+      restaurantsData = await getNearbyRestaurants(lat, lon);  // Use the existing function to get restaurants by lat, lon
+    }
+   
+    console.log("restaurantsData", restaurantsData);    
     return res.json({ results: restaurantsData });
   } 
   catch (error) 
