@@ -253,45 +253,32 @@ app.get('/api/restaurants', async (req, res) => {
   console.log('currentLat:', currentLat, '| currentLon:', currentLon, '| lat:', lat, '| lon:', lon, '| query:', query);
 
   try {
-    // Check if currentLat and currentLon are provided
-    if (isNaN(currentLat) || isNaN(currentLon)) 
-    {
-      return res.status(400).json({ error: 'Current latitude and longitude are required.' });
+    // Ensure that currentLat and currentLon are valid numbers
+    if (isNaN(currentLat) || isNaN(currentLon)) {
+      return res.status(400).json({ error: 'Current latitude and longitude are required and must be valid numbers.' });
     }
-
-    // Validate latitude and longitude if provided
-    if ((isNaN(lat) || isNaN(lon)) && !query) 
-    {
-      return res.status(400).json({ error: 'Invalid latitude, longitude or query parameter' });
-    }
-
-    let restaurantsData = [];
 
     // If a search query is provided, fetch restaurants based on the query
-    if (query) 
-    {
+    if (query) {
       // Use currentLat and currentLon as reference coordinates
-      restaurantsData = await getRestaurantsByQuery(parseFloat(currentLat), parseFloat(currentLon), query);
+      const restaurantsData = await getRestaurantsByQuery(parseFloat(currentLat), parseFloat(currentLon), query);
+      console.log("restaurantsData:", restaurantsData);
+      return res.json({ results: restaurantsData });
     } 
-    else if(!isNaN(currentLon) && !isNaN(currentLat) && !query)
-    {
-      restaurantsData = await getNearbyRestaurants(parseFloat(currentLat), parseFloat(currentLon));
-    }    
-    else if (!isNaN(lat) && !isNaN(lon)) 
-    {
-      restaurantsData = await getNearbyRestaurants(parseFloat(lat), parseFloat(lon));  // Coordinates-based search
-    }   
-    else  // If neither query nor valid lat/lon is provided, return an error
-    {
-      return res.status(400).json({ error: 'Please provide either a query or valid latitude and longitude.' });
+
+    // If lat and lon are provided, fetch restaurants based on the user-provided coordinates
+    if (!isNaN(lat) && !isNaN(lon)) {
+      const restaurantsData = await getNearbyRestaurants(parseFloat(lat), parseFloat(lon));
+      console.log("restaurantsData:", restaurantsData);
+      return res.json({ results: restaurantsData });
     }
 
+    // If no query or lat/lon are provided, default to currentLat and currentLon
+    const restaurantsData = await getNearbyRestaurants(parseFloat(currentLat), parseFloat(currentLon));
     console.log("restaurantsData:", restaurantsData);
     return res.json({ results: restaurantsData });
 
-  }
-  catch (error) 
-  {
+  } catch (error) {
     console.error('Error fetching restaurants:', error);
     return res.status(500).json({ error: 'Error fetching restaurants' });
   }
