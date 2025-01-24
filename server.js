@@ -10,7 +10,8 @@ const port = 3000;
 app.use(express.static('public'));
 app.use(cors());
 
-function getRadiusByAreaType(locationType) {
+function getRadiusByAreaType(locationType) 
+{
   switch (locationType) {
     case 'country': // Covering an entire country
       return 1000 * 1000; // 1000 km
@@ -60,16 +61,10 @@ async function getNearbyRestaurants(lat, lon) {
   }
 }
 
-async function getRestaurantsByQuery(query, currentLat, currentLon, searchedLat, searchedLon) {
+async function getRestaurantsByQuery( currentLat, currentLon, query ) {
   // If the searched location is provided, calculate the average
   let avgLat = currentLat;
   let avgLon = currentLon;
-
-  if (!isNaN(searchedLat) && !isNaN(searchedLon)) {
-    // Calculate average lat and lon
-    avgLat = (currentLat + searchedLat) / 2;
-    avgLon = (currentLon + searchedLon) / 2;
-  }
 
   const options = {
     method: 'GET',
@@ -81,7 +76,7 @@ async function getRestaurantsByQuery(query, currentLat, currentLon, searchedLat,
     params: {
       query: query,       // The search term (e.g., McDonald's)
       ll: `${avgLat},${avgLon}`,  // Use the average coordinates
-      radius: radius  // Search within 100 km radius
+      radius: 100000  // Search within 100 km radius
     }
   };
 
@@ -89,7 +84,8 @@ async function getRestaurantsByQuery(query, currentLat, currentLon, searchedLat,
     const response = await axios.request(options);
     
     // If the API responds successfully
-    if (response.data) {
+    if (response.data) 
+    {
       return response.data.results || [];  // Return the list of restaurants
     } else {
       return [];  // Return an empty array if no results are found
@@ -255,36 +251,37 @@ app.get('/map', async (req, res) => {
 app.get('/api/restaurants', async (req, res) => {
   const { currentLat, currentLon, lat, lon, query } = req.query;
 
-  console.log('Latitude:', lat, '| Longitude:', lon, "| query: ", query);
+  console.log('currentLat:', currentLat, '| currentLon:', currentLon, '| lat:', lat, '| lon:', lon, "| query: ", query);
 
-  try 
-  {
-    // Validate lat and lon
-    if ((isNaN(lat) || isNaN(lon)) && !query) 
-    {
-      return res.status(400).json({ error: 'Invalid latitude or longitude' });
+  try {
+    // Validate latitude and longitude
+    if ((isNaN(lat) || isNaN(lon)) && !query) {
+      return res.status(400).json({ error: 'Invalid latitude, longitude or query parameter' });
     }
 
+    let restaurantsData = [];
+
+    // If a search query is provided, fetch restaurants based on the query
     if (query) 
     {
-      // If search query is provided, fetch restaurants based on the query
-      restaurantsData = await getRestaurantsByQuery(currentLat, currentLon, lat, lon, query);  // Replace with your function to search restaurants by name or type
+      // We now use currentLat and currentLon in the function, assuming this is the "current location"
+      restaurantsData = await getRestaurantsByQuery(parseFloat(currentLat), parseFloat(currentLon), query);
     } 
-    else 
+    // Otherwise, fetch restaurants based on coordinates
+    else if (!isNaN(lat) && !isNaN(lon)) 
     {
-      // Otherwise, fetch restaurants based on coordinates
-      restaurantsData = await getNearbyRestaurants(lat, lon);  // Use the existing function to get restaurants by lat, lon
+      restaurantsData = await getNearbyRestaurants(parseFloat(lat), parseFloat(lon));  // Coordinates based search
     }
-   
-    console.log("restaurantsData", restaurantsData);    
+
+    console.log("restaurantsData:", restaurantsData);    
     return res.json({ results: restaurantsData });
-  } 
-  catch (error) 
-  {
+
+  } catch (error) {
     console.error('Error fetching restaurants:', error);
     return res.status(500).json({ error: 'Error fetching restaurants' });
   }
 });
+
 
 // Endpoint to fetch nearby places
 app.get('/api/nearbyplaces', async (req, res) => {
