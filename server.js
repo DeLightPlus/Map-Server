@@ -10,6 +10,22 @@ const port = 3000;
 app.use(express.static('public'));
 app.use(cors());
 
+function getRadiusByAreaType(locationType) {
+  switch (locationType) {
+    case 'country': // Covering an entire country
+      return 1000 * 1000; // 1000 km
+    case 'province': // Covering a province
+      return 200 * 1000; // 200 km (for smaller provinces)
+    case 'city': // Covering a city area
+      return 50 * 1000;  // 50 km (for metropolitan area)
+    default:
+      return 100 * 1000; // Default to 100 km for a general region
+  }
+}
+
+// Example usage based on location type
+const locationType = 'province';  // Change this as needed (e.g., 'city', 'country')
+const radius = getRadiusByAreaType(locationType);
 
 // Reusable function to fetch nearby restaurants
 async function getNearbyRestaurants(lat, lon) {
@@ -43,6 +59,47 @@ async function getNearbyRestaurants(lat, lon) {
     throw new Error('Error fetching restaurants');
   }
 }
+
+async function getRestaurantsByQuery(query, currentLat, currentLon, searchedLat, searchedLon) {
+  // If the searched location is provided, calculate the average
+  let avgLat = currentLat;
+  let avgLon = currentLon;
+
+  if (!isNaN(searchedLat) && !isNaN(searchedLon)) {
+    // Calculate average lat and lon
+    avgLat = (currentLat + searchedLat) / 2;
+    avgLon = (currentLon + searchedLon) / 2;
+  }
+
+  const options = {
+    method: 'GET',
+    url: 'https://api.foursquare.com/v3/places/search',
+    headers: {
+      accept: 'application/json',
+      Authorization: 'fsq3vzHTwmKG4Lkfvxbt2x+dzzgrgjuFxKDINtaqFuYzawM='  // Your Foursquare API key
+    },
+    params: {
+      query: query,       // The search term (e.g., McDonald's)
+      ll: `${avgLat},${avgLon}`,  // Use the average coordinates
+      radius: radius  // Search within 100 km radius
+    }
+  };
+
+  try {
+    const response = await axios.request(options);
+    
+    // If the API responds successfully
+    if (response.data) {
+      return response.data.results || [];  // Return the list of restaurants
+    } else {
+      return [];  // Return an empty array if no results are found
+    }
+  } catch (error) {
+    console.error('Error fetching restaurants by query:', error);
+    throw new Error('Error fetching restaurants by query');
+  }
+}
+
 
 // Route to serve the map HTML dynamically // Bloemfontein/@-29.1199822,26.1408227
 app.get('/map', async (req, res) => {
@@ -196,22 +253,22 @@ app.get('/map', async (req, res) => {
 
 // Endpoint to fetch nearby restaurants only
 app.get('/api/restaurants', async (req, res) => {
-  const { lat, lon, s_query } = req.query;
+  const { currentLat, currentLon, lat, lon, query } = req.query;
 
-  console.log('Latitude:', lat, '| Longitude:', lon, "| s_query: ", s_query);
+  console.log('Latitude:', lat, '| Longitude:', lon, "| query: ", query);
 
   try 
   {
     // Validate lat and lon
-    if ((isNaN(lat) || isNaN(lon)) && !s_query) 
+    if ((isNaN(lat) || isNaN(lon)) && !query) 
     {
       return res.status(400).json({ error: 'Invalid latitude or longitude' });
     }
 
-    if (s_query) 
+    if (query) 
     {
       // If search query is provided, fetch restaurants based on the query
-      restaurantsData = await getRestaurantsByQuery(s_query);  // Replace with your function to search restaurants by name or type
+      restaurantsData = await getRestaurantsByQuery(currentLat, currentLon, lat, lon, query);  // Replace with your function to search restaurants by name or type
     } 
     else 
     {
