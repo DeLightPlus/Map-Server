@@ -110,7 +110,7 @@ app.get('/map', async (req, res) => {
   const lat = !isNaN(searchedLat) ? searchedLat : currentLat;
   const lon = !isNaN(searchedLon) ? searchedLon : currentLon;
 
-  const coverageRadius = 32 * 1000; // Radius in meters (32km)
+  const coverageRadius = 50 * 1000; // Radius in meters (32km)
 
   try {
     // Fetch nearby restaurants from Foursquare API
@@ -123,7 +123,7 @@ app.get('/map', async (req, res) => {
       },
       params: {
         ll: `${lat},${lon}`,  // Coordinates of the location
-        radius: 32 * 1000,     // Radius in meters (32 km)
+        radius: 50 * 1000,     // Radius in meters (32 km)
         categories: '13065'    // Foursquare category for restaurants
       }
     };
